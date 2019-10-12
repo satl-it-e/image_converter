@@ -1,63 +1,51 @@
 #!/bin/bash
 
 # Set the "strict mode"
-# -e => Exit if any command has a non-zero exit status.
-# -u => Exit on references to undefined variables.
-# -o pipeline => Return err-code of the first-failed command as an err-code of a whole pipeline.
-# -o errexit => Exit script in case of err.
-set -euo pipefail errexit
-# Set Internal Field Separator for filenames.
+set -eu
+set -o pipefail
+set -o errexit
+  # -e |=> Exit if any command has a non-zero exit status (except loops/ifs/lists/...).
+  # -u |=> Exit on references to undefined variables.
+  # -o pipeline |=> Return err-code of the first-failed command as an err-code of a whole pipeline.
+  # -o errexit |=> Exit script in case of err.
+
 IFS=$'\n\t'
+# Set Internal Field Separator for filenames.
 
-ID_LEN=${1:-8}
-INIT_ID=${2:-0}
-THIS_DIR=${3:-$PWD}
+THIS_NAME=${0}
+ID_LEN="${1:-8}"
+INIT_ID="${2:-0}"
+THIS_DIR="${3:-$PWD}"
+
+if [ "${THIS_DIR: -1}" != "/" ]; then THIS_DIR="$THIS_DIR/"; fi
+# Make sure THIS_DIR ends with a slash.
 
 
-# Make sure THIS_DIR ends with slash
-if [ "${THIS_DIR: -1}" != "/" ]; then THIS_DIR="${THIS_DIR}/"; fi
-
-# Check THIS_DIR arg.
-if [ ! -d ${THIS_DIR} ]; then
+if [ ! -d "$THIS_DIR" ]; then
   echo "Given path is not valid directory. Please check."
   exit 1;
 fi
 
-# Check ID-... args.
-if [ $ID_LEN -gt 50 -o $ID_LEN -eq 0 ]; then
-  echo "Given id-length is not supported. Please use numbers in range [1, 50]."
+# Check if ID-... args are adeqate ints.
+if [ "$ID_LEN" -gt 50 ] || [ "$ID_LEN" -eq 0 ]; then
+  echo "Given id-args are not supported. Please use numbers in range [1, 50]."
   exit 1;
 fi
 
 cd ${THIS_DIR}
 
-for f in ${THIS_DIR}*; do
+for f in $(ls); do
   [ -f "$f" ] || continue
 
-    if [ $(file -ib ${f} | grep image) ]; then  # CHECK BITMAPS
-      echo stats: $(stat -c %y ${f})
-      convert "$f" "${f%.*}.jpg";
+    if [ $(file -ib "$f" | grep image) ]; then
+      echo "$f"
+      echo $(stat -c %y "$f")
+      convert "$f" "converted/${f%.*}.jpg";
     fi
 
 done
 
-
-
-
-
 # ToDo
-# 1:
-# alternative img-type check
-  # if (echo "$set"  | fgrep -q "$WORD")
-  # built-in img-recognizing command
-
-# 2:
-# check on bitmaps! else:
-# if [ $("$f" | grep -qE 'image|bitmap') ]; then
-# if [[ $(file -b ${f} | awk '{print $1}') =~ ^(PNG|JPG|GIF|BMP)$ ]]; then
-#   echo ---${f};
-# fi
-# SUPPORTED_IMG_EXTS=[]
-
-# 3:
-# convert "$f" "${THIS_DIR}converted/${f%.*}.jpg";
+# ! -- stats 
+# ! -- Add script to clean up the converted directory.
+# * -- Alternative convert. -- convert "$f" "${THIS_DIR}converted/${f%.*}.jpg";
